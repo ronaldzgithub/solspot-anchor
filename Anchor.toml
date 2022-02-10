@@ -1,0 +1,12 @@
+[programs.devnet]
+solspot = "6qgQxwtSDhC8sEJ1AERrchDcyWVKsyj6cN5uk5papLsd"
+
+[registry]
+url = "https://anchor.projectserum.com"
+
+[provider]
+cluster = "devnet"
+wallet = "/home/byron/.config/solana/id.json"
+
+[scripts]
+test = "yarn run mocha -t 1000000 tests/"
