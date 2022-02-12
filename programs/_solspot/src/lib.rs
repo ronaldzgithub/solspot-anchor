@@ -7,24 +7,27 @@ declare_id!("6qgQxwtSDhC8sEJ1AERrchDcyWVKsyj6cN5uk5papLsd");
 pub mod solspot {
     use super::*;
 
-    pub fn create_profile(ctx: Context<CreateProfile>, bio: String) -> ProgramResult {
+    pub fn initialize(ctx: Context<CreateProfile>) -> ProgramResult {
         let profile: &mut Account<Profile> = &mut ctx.accounts.profile;
         let user: &Signer = &ctx.accounts.user;
-
-        if bio.chars().count() >140 {
-            return Err(ErrorCode::BioTooLong.into())
-        }
-
         profile.user = *user.key;
-        profile.bio = bio;
-
         Ok(())
     }
 
-    pub fn update_profile(ctx: Context<UpdateBio>, bio: String) -> ProgramResult {
+
+    pub fn construct_profile(ctx: Context<ConstructProfile>, obj: Profile) -> ProgramResult {
+        let profile: &mut Account<Profile> = &mut ctx.accounts.profile;
+        println!({""}, obj);
+        profile.bio = obj.bio;
+        profile.link_list = obj.link_list;
+        Ok(())
+    }
+
+
+    pub fn update_bio(ctx: Context<UpdateBio>, bio: String) -> ProgramResult {
         let profile: &mut Account<Profile> = &mut ctx.accounts.profile;
 
-        if bio.chars().count() >140 {
+        if bio.chars().count() > 140 {
             return Err(ErrorCode::BioTooLong.into())
         }
 
@@ -32,6 +35,7 @@ pub mod solspot {
 
         Ok(())
     }
+
 
     pub fn add_link(ctx: Context<AddURL>, name: String, url: String) -> ProgramResult {
         let profile: &mut Account<Profile> = &mut ctx.accounts.profile;
@@ -46,10 +50,39 @@ pub mod solspot {
         profile.link_list.push(link);
         Ok(())
     }
+
+
+    pub fn update_link(ctx: Context<DeleteLink>, name: String, url: String, index: u8) -> ProgramResult {
+        let profile: &mut Account<Profile> = &mut ctx.accounts.profile;
+        let user = &mut ctx.accounts.user;
+
+        // Build the struct.
+        let i: usize = index.into();
+        profile.link_list[i].name = name;
+        profile.link_list[i].url = url;
+        Ok(())
+    }
+
+
+    pub fn delete_link(ctx: Context<DeleteLink>, index: u8) -> ProgramResult {
+        let profile: &mut Account<Profile> = &mut ctx.accounts.profile;
+        let user = &mut ctx.accounts.user;
+
+        // Build the struct.
+        let i: usize = index.into();
+
+        profile.link_list.remove(i);
+        Ok(())
+    }
+
+    pub fn delete_profile(_ctx: Context<DeleteProfile>) -> ProgramResult {
+        Ok(())
+    }
+
 }
 
 
-
+//Profile::LEN
 
 #[derive(Accounts)]
 pub struct CreateProfile<'info> {
@@ -63,11 +96,20 @@ pub struct CreateProfile<'info> {
 
 // Add the signer who calls the AddGif method to the struct so that we can save it
 #[derive(Accounts)]
+pub struct ConstructProfile<'info> {
+  #[account(mut, has_one = user)]
+  pub profile: Account<'info, Profile>,
+  pub user: Signer<'info>,
+}
+
+// Add the signer who calls the AddGif method to the struct so that we can save it
+#[derive(Accounts)]
 pub struct AddURL<'info> {
   #[account(mut, has_one = user)]
   pub profile: Account<'info, Profile>,
   pub user: Signer<'info>,
 }
+
 
 #[derive(Accounts)]
 pub struct UpdateBio<'info> {
@@ -77,8 +119,6 @@ pub struct UpdateBio<'info> {
 }
 
 
-/*
-// Delete account -- will worry about later
 #[derive(Accounts)]
 pub struct DeleteProfile<'info> {
     #[account(mut, has_one = user, close = user)]
@@ -86,7 +126,21 @@ pub struct DeleteProfile<'info> {
     pub user: Signer<'info>,
 }
 
-*/
+
+#[derive(Accounts)]
+pub struct DeleteLink<'info> {
+    #[account(mut, has_one = user)]
+    pub profile: Account<'info, Profile>,
+    pub user: Signer<'info>,
+}
+
+
+#[derive(Accounts)]
+pub struct UpdateLink<'info> {
+    #[account(mut, has_one = user)]
+    pub profile: Account<'info, Profile>,
+    pub user: Signer<'info>,
+}
 
 // Create a custom struct for us to work with.
 #[derive(Debug, Clone, AnchorSerialize, AnchorDeserialize)]
@@ -104,6 +158,11 @@ pub struct Profile {
 }
 
 
+
+
+
+
+
 const DISCRIMINATOR_LENGTH: usize = 8;
 const PUBLIC_KEY_LENGTH: usize = 32;
 const MAX_BIO_LENGTH: usize = 140 * 4; // 140 chars max.
@@ -119,8 +178,6 @@ impl Profile {
         + MAX_BIO_LENGTH // Bio.
         + VEC_LENGTH; // URL ARR
 }
-
-
 
 #[error]
 pub enum ErrorCode {
