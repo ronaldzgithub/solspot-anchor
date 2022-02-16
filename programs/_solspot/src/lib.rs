@@ -14,64 +14,10 @@ pub mod solspot {
         Ok(())
     }
 
-
-    pub fn construct_profile(ctx: Context<ConstructProfile>, obj: Profile) -> ProgramResult {
+    pub fn update_profile(ctx: Context<UpdateProfile>, bio: String, content: Vec<ContentStruct>) -> ProgramResult {
         let profile: &mut Account<Profile> = &mut ctx.accounts.profile;
-        println!({""}, obj);
-        profile.bio = obj.bio;
-        profile.link_list = obj.link_list;
-        Ok(())
-    }
-
-
-    pub fn update_bio(ctx: Context<UpdateBio>, bio: String) -> ProgramResult {
-        let profile: &mut Account<Profile> = &mut ctx.accounts.profile;
-
-        if bio.chars().count() > 140 {
-            return Err(ErrorCode::BioTooLong.into())
-        }
-
         profile.bio = bio;
-
-        Ok(())
-    }
-
-
-    pub fn add_link(ctx: Context<AddURL>, name: String, url: String) -> ProgramResult {
-        let profile: &mut Account<Profile> = &mut ctx.accounts.profile;
-        let user = &mut ctx.accounts.user;
-
-        // Build the struct.
-        let link = LinkStruct {
-            name: name.to_string(),
-            url: url.to_string(),
-        };
-
-        profile.link_list.push(link);
-        Ok(())
-    }
-
-
-    pub fn update_link(ctx: Context<DeleteLink>, name: String, url: String, index: u8) -> ProgramResult {
-        let profile: &mut Account<Profile> = &mut ctx.accounts.profile;
-        let user = &mut ctx.accounts.user;
-
-        // Build the struct.
-        let i: usize = index.into();
-        profile.link_list[i].name = name;
-        profile.link_list[i].url = url;
-        Ok(())
-    }
-
-
-    pub fn delete_link(ctx: Context<DeleteLink>, index: u8) -> ProgramResult {
-        let profile: &mut Account<Profile> = &mut ctx.accounts.profile;
-        let user = &mut ctx.accounts.user;
-
-        // Build the struct.
-        let i: usize = index.into();
-
-        profile.link_list.remove(i);
+        profile.link_list = content;
         Ok(())
     }
 
@@ -83,7 +29,6 @@ pub mod solspot {
 
 
 //Profile::LEN
-
 #[derive(Accounts)]
 pub struct CreateProfile<'info> {
     #[account(init, payer = user, space = Profile::LEN)]
@@ -94,28 +39,13 @@ pub struct CreateProfile<'info> {
     pub system_program: AccountInfo<'info>,
 }
 
-// Add the signer who calls the AddGif method to the struct so that we can save it
-#[derive(Accounts)]
-pub struct ConstructProfile<'info> {
-  #[account(mut, has_one = user)]
-  pub profile: Account<'info, Profile>,
-  pub user: Signer<'info>,
-}
 
 // Add the signer who calls the AddGif method to the struct so that we can save it
 #[derive(Accounts)]
-pub struct AddURL<'info> {
+pub struct UpdateProfile<'info> {
   #[account(mut, has_one = user)]
   pub profile: Account<'info, Profile>,
   pub user: Signer<'info>,
-}
-
-
-#[derive(Accounts)]
-pub struct UpdateBio<'info> {
-    #[account(mut, has_one = user)]
-    pub profile: Account<'info, Profile>,
-    pub user: Signer<'info>,
 }
 
 
@@ -126,27 +56,12 @@ pub struct DeleteProfile<'info> {
     pub user: Signer<'info>,
 }
 
-
-#[derive(Accounts)]
-pub struct DeleteLink<'info> {
-    #[account(mut, has_one = user)]
-    pub profile: Account<'info, Profile>,
-    pub user: Signer<'info>,
-}
-
-
-#[derive(Accounts)]
-pub struct UpdateLink<'info> {
-    #[account(mut, has_one = user)]
-    pub profile: Account<'info, Profile>,
-    pub user: Signer<'info>,
-}
-
 // Create a custom struct for us to work with.
 #[derive(Debug, Clone, AnchorSerialize, AnchorDeserialize)]
-pub struct LinkStruct {
+pub struct ContentStruct {
     pub name: String,
     pub url: String,
+    pub id: u8,
 }
 
 
@@ -154,10 +69,8 @@ pub struct LinkStruct {
 pub struct Profile {
     pub user: Pubkey,
     pub bio: String,
-    pub link_list: Vec<LinkStruct>,
+    pub link_list: Vec<ContentStruct>,
 }
-
-
 
 
 
