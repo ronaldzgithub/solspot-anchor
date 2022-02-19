@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::system_program;
 
-declare_id!("6qgQxwtSDhC8sEJ1AERrchDcyWVKsyj6cN5uk5papLsd");
+declare_id!("9LzdaMByVqhVJqbP74KF1mwxfSiQSVQWMZnwRgbPMW88");
 
 #[program]
 pub mod solspot {
@@ -11,12 +11,26 @@ pub mod solspot {
         let profile: &mut Account<Profile> = &mut ctx.accounts.profile;
         let user: &Signer = &ctx.accounts.user;
         profile.user = *user.key;
+        profile.light_theme = true;
+        profile.individual = true;
         Ok(())
     }
 
-    pub fn update_profile(ctx: Context<UpdateProfile>, bio: String, content: Vec<ContentStruct>) -> ProgramResult {
+    pub fn update_profile(ctx: Context<UpdateProfile>, bio: String, color: String, light: bool, individ_prof: bool, content: Vec<ContentStruct>) -> ProgramResult {
         let profile: &mut Account<Profile> = &mut ctx.accounts.profile;
+
+        if bio.chars().count() > 150 {
+            return Err(ErrorCode::BioTooLong.into())
+        }
+
+        if color.chars().count() > 6 {
+            return Err(ErrorCode::ColorTooLong.into())
+        }
+
         profile.bio = bio;
+        profile.color = color;
+        profile.light_theme = light;
+        profile.individual = individ_prof;
         profile.link_list = content;
         Ok(())
     }
@@ -69,31 +83,44 @@ pub struct ContentStruct {
 pub struct Profile {
     pub user: Pubkey,
     pub bio: String,
+    pub color: String,
+    pub light_theme: bool,
+    pub individual: bool,
     pub link_list: Vec<ContentStruct>,
 }
 
 
 
 
-
+// Vectors
 const DISCRIMINATOR_LENGTH: usize = 8;
 const PUBLIC_KEY_LENGTH: usize = 32;
-const MAX_BIO_LENGTH: usize = 140 * 4; // 140 chars max.
-const URL_LENGTH: usize = 200 * 4; // 200 chars max for the url
-const URL_TITLE_LENGTH: usize = 50 * 4; // 50 chars max per title length of a link
-const VEC_LENGTH: usize = (URL_LENGTH + URL_TITLE_LENGTH) * 8; // length of the vector of strings not including prefix
-const STRING_LENGTH_PREFIX_TOTAL: usize = 21 * 4; // 21 total prefixes for the strings of 4 each
+const MAX_BIO_LENGTH: usize = 150 * 4; // 140 chars max.
+const COLOR_LENGTH: usize = 6 * 4; // 6 chars max -- hex code
+const THEME_LENGTH: usize = 1 * 4; // boolean, based on ligth vs dark mode
+const INDIVIDUAL_TYPE_LENGTH: usize = 1 * 4; // boolean, based on ligth vs dark mode
+const ITEM_NAME_LENGTH: usize = 50 * 4; // 50 chars max per title length of a link
+const ITEM_URL_LENGTH: usize = 200 * 4; // 200 chars max for the url
+const ITEM_ID_LENGTH: usize = 1 * 4; // 1 byte (1 byte == 4 bits)
+const MAX_VEC_LENGTH: usize = (ITEM_NAME_LENGTH + ITEM_URL_LENGTH + ITEM_ID_LENGTH) * 8; // length of the vector of strings not including prefix
+const STRING_PREFIX_TOTAL: usize = 22 * 4; // 21 total prefixes for the strings of 4 each
 
 impl Profile {
     const LEN: usize = DISCRIMINATOR_LENGTH
         + PUBLIC_KEY_LENGTH // Author.
-        + STRING_LENGTH_PREFIX_TOTAL // prefix 
         + MAX_BIO_LENGTH // Bio.
-        + VEC_LENGTH; // URL ARR
+        + COLOR_LENGTH
+        + THEME_LENGTH
+        + INDIVIDUAL_TYPE_LENGTH 
+        + STRING_PREFIX_TOTAL // prefix 
+        + MAX_VEC_LENGTH; // URL ARR
 }
 
 #[error]
 pub enum ErrorCode {
-    #[msg("The provided bio should be 140 characters long maximum.")]
+    #[msg("The provided bio should be 150 characters long maximum.")]
     BioTooLong,
+    
+    #[msg("The provided color should be 6 characters long.")]
+    ColorTooLong,
 }
