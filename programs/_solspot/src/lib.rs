@@ -16,21 +16,14 @@ pub mod solspot {
         Ok(())
     }
 
-    pub fn update_profile(ctx: Context<UpdateProfile>, bio: String, color: String, light: bool, individ_prof: bool, content: Vec<ContentStruct>) -> ProgramResult {
+    pub fn update_profile(ctx: Context<UpdateProfile>, bio: String, content: Vec<ContentStruct>) -> ProgramResult {
         let profile: &mut Account<Profile> = &mut ctx.accounts.profile;
 
         if bio.chars().count() > 150 {
             return Err(ErrorCode::BioTooLong.into())
         }
 
-        if color.chars().count() > 6 {
-            return Err(ErrorCode::ColorTooLong.into())
-        }
-
         profile.bio = bio;
-        profile.color = color;
-        profile.light_theme = light;
-        profile.individual = individ_prof;
         profile.link_list = content;
         Ok(())
     }
@@ -83,9 +76,6 @@ pub struct ContentStruct {
 pub struct Profile {
     pub user: Pubkey,
     pub bio: String,
-    pub color: String,
-    pub light_theme: bool,
-    pub individual: bool,
     pub link_list: Vec<ContentStruct>,
 }
 
@@ -96,9 +86,6 @@ pub struct Profile {
 const DISCRIMINATOR_LENGTH: usize = 8;
 const PUBLIC_KEY_LENGTH: usize = 32;
 const MAX_BIO_LENGTH: usize = 150 * 4; // 140 chars max.
-const COLOR_LENGTH: usize = 6 * 4; // 6 chars max -- hex code
-const THEME_LENGTH: usize = 1 * 4; // boolean, based on ligth vs dark mode
-const INDIVIDUAL_TYPE_LENGTH: usize = 1 * 4; // boolean, based on ligth vs dark mode
 const ITEM_NAME_LENGTH: usize = 50 * 4; // 50 chars max per title length of a link
 const ITEM_URL_LENGTH: usize = 200 * 4; // 200 chars max for the url
 const ITEM_ID_LENGTH: usize = 1 * 4; // 1 byte (1 byte == 4 bits)
@@ -109,9 +96,6 @@ impl Profile {
     const LEN: usize = DISCRIMINATOR_LENGTH
         + PUBLIC_KEY_LENGTH // Author.
         + MAX_BIO_LENGTH // Bio.
-        + COLOR_LENGTH
-        + THEME_LENGTH
-        + INDIVIDUAL_TYPE_LENGTH 
         + STRING_PREFIX_TOTAL // prefix 
         + MAX_VEC_LENGTH; // URL ARR
 }
